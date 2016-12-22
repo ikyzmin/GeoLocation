@@ -9,6 +9,9 @@ android {
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
+        vectorDrawables{
+            useSupportLibrary true
+        }
     }
     buildTypes {
         release {
@@ -22,4 +25,8 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:25.0.1'
     compile 'com.google.android.gms:play-services:10.0.1'
+    compile 'com.android.support:design:25.1.0'
+    compile 'com.sothree.slidinguppanel:library:3.3.1'
+    compile 'org.apache.httpcomponents:httpclient-android:4.3.5.1'
+    compile 'org.jbundle.util.osgi.wrapped:org.jbundle.util.osgi.wrapped.org.apache.http.client:4.1.2'
 }

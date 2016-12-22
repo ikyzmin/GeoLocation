@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">GeoLocation</string>
+    <string name="permission_title">Требуется разрешение</string>
+    <string name="permission_request">Чтобы определить ваше местоположение мы должны получить специальное разрешение.\nХотите перейти в настройки?</string>
+    <string name="common_yes">Да</string>
+    <string name="common_no">Нет</string>
+    <string name="add_route">Добавить маршрут</string>
+    <string name="route_start">Начало</string>
+    <string name="route_end">Конец</string>
+    <string name="route_name">Имя путешествия</string>
+    <string name="find_route">Создать путешествие</string>
 </resources>
