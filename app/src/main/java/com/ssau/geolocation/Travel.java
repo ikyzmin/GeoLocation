@@ -2,16 +2,14 @@ package com.ssau.geolocation;
 
 import com.google.android.gms.maps.model.Marker;
 
-/**
- * Created by Илья on 22.12.2016.
- */
-
 public class Travel {
     public Marker origin;
     public Marker dest;
+    public String name;
 
-    public Travel(Marker org, Marker dst) {
+    public Travel(String name, Marker org, Marker dst) {
         origin = org;
         dest = dst;
+        this.name = name;
     }
 }

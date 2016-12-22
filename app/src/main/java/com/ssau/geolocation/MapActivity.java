@@ -3,9 +3,11 @@ package com.ssau.geolocation;
 import android.*;
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
@@ -18,12 +20,21 @@ import android.os.ResultReceiver;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.AppCompatEditText;
 import android.support.v7.widget.AppCompatTextView;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -36,12 +47,17 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.ssau.geolocation.service.Constants;
 import com.ssau.geolocation.service.FetchAddressIntentService;
 import com.ssau.geolocation.util.MapUtil;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 
 import static com.ssau.geolocation.R.id.map;
 
@@ -57,12 +73,27 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private AppCompatTextView routeStartTextView;
     private AppCompatTextView routeEndTextView;
     private AppCompatEditText routeName;
+    private DrawerLayout drawerLayout;
+    private RecyclerView menuRecyclerView;
     private AppCompatButton createRouteButton;
+    private ActionBarDrawerToggle menuToggle;
     private AddressResultReceiver mResultReceiver;
+    private Toolbar toolbar;
+    private final ArrayList<Marker> notLinkedMarkers = new ArrayList<>();
+    private final ArrayList<Polyline> lines = new ArrayList<>();
 
     private final ArrayList<Marker> newRoutePoints = new ArrayList<>();
     private final ArrayList<Travel> travels = new ArrayList<>();
     private LocationManager locationManager;
+
+    private BroadcastReceiver roadNotFoundReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            travels.get(travels.size() - 1).dest.remove();
+            travels.get(travels.size() - 1).origin.remove();
+            travels.remove(travels.size() - 1);
+        }
+    };
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -72,7 +103,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 .findFragmentById(map);
         mapFragment.getMapAsync(this);
         SlidingUpPanelLayout layout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
-        layout.setAnchorPoint(0.3f);
+        layout.setAnchorPoint(0.4f);
+        menuRecyclerView = (RecyclerView) findViewById(R.id.menu_content);
+        menuRecyclerView.setAdapter(new MenuAdapter(Arrays.asList(com.ssau.geolocation.menu.MenuItem.values()), this));
+
         slidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
         addRouteButton = (FloatingActionButton) findViewById(R.id.add_route_button);
         addRouteButton.setOnClickListener(new View.OnClickListener() {
@@ -81,23 +115,79 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.ANCHORED);
             }
         });
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        drawerLayout = (DrawerLayout) findViewById(R.id.menu);
+        setSupportActionBar(toolbar);
+        menuToggle = new ActionBarDrawerToggle(this, drawerLayout,
+                toolbar, R.string.drawer_open, R.string.drawer_close) {
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+
+            }
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                super.onDrawerClosed(drawerView);
+            }
+        };
+
+        menuToggle.syncState();
         routeStartTextView = (AppCompatTextView) findViewById(R.id.route_start);
         routeEndTextView = (AppCompatTextView) findViewById(R.id.route_end);
         routeName = (AppCompatEditText) findViewById(R.id.route_name);
         createRouteButton = (AppCompatButton) findViewById(R.id.add_route);
+        routeName.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                createRouteButton.setEnabled(s.length() != 0);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
         mResultReceiver = new AddressResultReceiver(new Handler(Looper.getMainLooper()));
         createRouteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (newRoutePoints.size() == 2) {
-                    travels.add(new Travel(newRoutePoints.get(0), newRoutePoints.get(1)));
+                    Travel travel = new Travel(routeName.getText().toString(), newRoutePoints.get(0), newRoutePoints.get(1));
                     ConnectAsyncTask connectAsyncTask = new ConnectAsyncTask(MapActivity.this, MapUtil.makeURL(newRoutePoints.get(0).getPosition().latitude, newRoutePoints.get(0).getPosition().longitude, newRoutePoints.get(1).getPosition().latitude, newRoutePoints.get(1).getPosition().longitude), googleMap, travels.size() - 1);
-                    connectAsyncTask.execute();
+                    String result = null;
+                    try {
+                        result = connectAsyncTask.execute().get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                    Polyline polyline = MapUtil.drawPath(googleMap, result, LocationStore.getInstance().getTravels().size());
+                    if (polyline == null) {
+                        Toast.makeText(MapActivity.this, "Дорога не найдена", Toast.LENGTH_LONG).show();
+                        travel.dest.remove();
+                        travel.origin.remove();
+                        updateMap();
+                    } else {
+                        LocationStore.getInstance().addLine(polyline);
+                        LocationStore.getInstance().addTravel(travel);
+                    }
                     newRoutePoints.clear();
+                    slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+                    routeName.setText("");
+                    routeStartTextView.setText("");
+                    routeEndTextView.setText("");
                 }
             }
         });
         manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0,
                 0, new LocationListener() {
                     @Override
@@ -122,6 +212,28 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 });
     }
 
+    private void updateMap() {
+        if (googleMap != null) {
+            googleMap.clear();
+            for (Marker marker : LocationStore.getInstance().getNotLinkedMarkers()) {
+                googleMap.addMarker(new MarkerOptions().position(marker.getPosition()));
+            }
+            for (Travel travel : LocationStore.getInstance().getTravels()) {
+                googleMap.addMarker(new MarkerOptions().position(travel.origin.getPosition()));
+                googleMap.addMarker(new MarkerOptions().position(travel.dest.getPosition()));
+            }
+
+            for (Polyline polyline : LocationStore.getInstance().getLines()) {
+                googleMap.addPolyline(new PolylineOptions()
+                        .addAll(polyline.getPoints())
+                        .width(12)
+                        .color(polyline.getColor())//Google maps blue color
+                        .geodesic(true)
+                );
+            }
+        }
+    }
+
     protected void onStart() {
         super.onStart();
     }
@@ -131,29 +243,53 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        if (menuToggle.onOptionsItemSelected(item)) {
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (checkGPS() && googleMap != null) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
             googleMap.setMyLocationEnabled(true);
         }
+        registerReceiver(roadNotFoundReceiver, new IntentFilter(ConnectAsyncTask.ROAD_NOT_FOUND_ACTION));
+        updateMap();
     }
 
-    protected void startIntentService(LatLng latLng) {
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(roadNotFoundReceiver);
+    }
+
+    protected void startIntentService(LatLng latLng, int requestCode) {
         Intent intent = new Intent(this, FetchAddressIntentService.class);
         intent.putExtra(Constants.RECEIVER, mResultReceiver);
         Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
         Location location = new Location(manager.getBestProvider(criteria, true));
         location.setLatitude(latLng.latitude);
         location.setLongitude(latLng.longitude);
         intent.putExtra(Constants.LOCATION_DATA_EXTRA, new Location(location));
+        intent.putExtra(Constants.REQUEST_CODE_EXTRA, requestCode);
         startService(intent);
     }
 
     @Override
     public void onMapReady(final GoogleMap googleMap) {
         this.googleMap = googleMap;
+        updateMap();
         if (checkGPS()) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            }
             googleMap.setMyLocationEnabled(true);
         }
         double latitude = lastKnownLocation != null ? lastKnownLocation.getLatitude() : 0;
@@ -163,7 +299,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             @Override
             public boolean onMyLocationButtonClick() {
                 if (lastKnownLocation != null) {
-                    googleMap.addMarker(new MarkerOptions().position(new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude())));
+                    LocationStore.getInstance().addNotLinkedMarker(googleMap.addMarker(new MarkerOptions().position(new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude()))));
                     return true;
                 }
                 return false;
@@ -175,13 +311,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 if (slidingUpPanelLayout.getPanelState() == SlidingUpPanelLayout.PanelState.ANCHORED && newRoutePoints.size() != 2) {
                     Marker marker = googleMap.addMarker(new MarkerOptions().position(latLng));
                     if (newRoutePoints.size() == 0) {
-                        startIntentService(marker.getPosition());
+                        startIntentService(marker.getPosition(), Constants.REQUEST_START);
                     } else {
-                        startIntentService(marker.getPosition());
+                        startIntentService(marker.getPosition(), Constants.REQUEST_END);
                     }
                     newRoutePoints.add(marker);
+                } else {
+                    if (slidingUpPanelLayout.getPanelState() != SlidingUpPanelLayout.PanelState.ANCHORED)
+                        LocationStore.getInstance().addNotLinkedMarker(googleMap.addMarker(new MarkerOptions().position(latLng)));
                 }
-
             }
         });
         googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
@@ -190,6 +328,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 if (newRoutePoints.contains(marker)) {
                     newRoutePoints.remove(marker);
                     marker.remove();
+                    updateMap();
+                }
+                if (LocationStore.getInstance().getNotLinkedMarkers().contains(marker)) {
+                    LocationStore.getInstance().getNotLinkedMarkers().remove(marker);
+                    marker.remove();
+                    updateMap();
                 }
 
                 return false;
@@ -245,11 +389,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         @Override
         protected void onReceiveResult(int resultCode, Bundle resultData) {
 
-            // Display the address string
-            // or an error message sent from the intent service.
-            routeStartTextView.setText(resultData.getString(Constants.RESULT_DATA_KEY));
-            routeEndTextView.setText(resultData.getString(Constants.RESULT_DATA_KEY));
-            // Show a toast message if an address was found.
+            if (resultCode == Constants.REQUEST_START) {
+                routeStartTextView.setText(getString(R.string.route_start, resultData.getString(Constants.RESULT_DATA_KEY)));
+            }
+            if (resultCode == Constants.REQUEST_END) {
+                routeEndTextView.setText(getString(R.string.route_end, resultData.getString(Constants.RESULT_DATA_KEY)));
+            }
 
         }
     }

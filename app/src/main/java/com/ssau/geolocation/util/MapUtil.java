@@ -21,42 +21,47 @@ import java.util.List;
 
 public class MapUtil {
 
-    private static final int [] DEFAULT_ROUTES_COLOR = {Color.parseColor("#05b1fb"),Color.parseColor("#50b1fb"),Color.parseColor("#05b1bf"),Color.parseColor("#501bfb"),Color.parseColor("#501bbf"),Color.parseColor("#03a0db"),Color.parseColor("#03030b"),Color.parseColor("#03a3ab"),Color.parseColor("#dbaddb"),Color.parseColor("#33ff32")};
+    private static final int[] DEFAULT_ROUTES_COLOR = {Color.parseColor("#05b1fb"), Color.parseColor("#50b1fb"), Color.parseColor("#05b1bf"), Color.parseColor("#501bfb"), Color.parseColor("#501bbf"), Color.parseColor("#03a0db"), Color.parseColor("#03030b"), Color.parseColor("#03a3ab"), Color.parseColor("#dbaddb"), Color.parseColor("#33ff32")};
 
-    public static String makeURL (double sourcelat, double sourcelog, double destlat, double destlog ){
+    public static String makeURL(double sourcelat, double sourcelog, double destlat, double destlog) {
         StringBuilder urlString = new StringBuilder();
         urlString.append("https://maps.googleapis.com/maps/api/directions/json");
         urlString.append("?origin=");// from
         urlString.append(Double.toString(sourcelat));
         urlString.append(",");
         urlString
-                .append(Double.toString( sourcelog));
+                .append(Double.toString(sourcelog));
         urlString.append("&destination=");// to
         urlString
-                .append(Double.toString( destlat));
+                .append(Double.toString(destlat));
         urlString.append(",");
-        urlString.append(Double.toString( destlog));
-       // urlString.append("&sensor=false&mode=driving&alternatives=true");
+        urlString.append(Double.toString(destlog));
+        // urlString.append("&sensor=false&mode=driving&alternatives=true");
         urlString.append("&key=AIzaSyDNA6AI9RCQH6mdzQlO9CUPN-U9MNnRlJM");
         return urlString.toString();
     }
 
-    public static void drawPath(GoogleMap map, String  result,int routCount) {
+    public static Polyline drawPath(GoogleMap map, String result, int routCount) {
 
         try {
             //Tranform the string into a json object
             final JSONObject json = new JSONObject(result);
             JSONArray routeArray = json.getJSONArray("routes");
-            JSONObject routes = routeArray.getJSONObject(0);
-            JSONObject overviewPolylines = routes.getJSONObject("overview_polyline");
-            String encodedString = overviewPolylines.getString("points");
-            List<LatLng> list = decodePoly(encodedString);
-            Polyline line = map.addPolyline(new PolylineOptions()
-                    .addAll(list)
-                    .width(12)
-                    .color(DEFAULT_ROUTES_COLOR[routCount%10])//Google maps blue color
-                    .geodesic(true)
-            );
+            if (routeArray != null) {
+                JSONObject routes = routeArray.getJSONObject(0);
+                JSONObject overviewPolylines = routes.getJSONObject("overview_polyline");
+                String encodedString = overviewPolylines.getString("points");
+                List<LatLng> list = decodePoly(encodedString);
+                Polyline line = map.addPolyline(new PolylineOptions()
+                        .addAll(list)
+                        .width(12)
+                        .color(DEFAULT_ROUTES_COLOR[routCount % 10])//Google maps blue color
+                        .geodesic(true)
+                );
+                return line;
+            } else {
+                return null;
+            }
            /*
            for(int z = 0; z<list.size()-1;z++){
                 LatLng src= list.get(z);
@@ -67,9 +72,8 @@ public class MapUtil {
                 .color(Color.BLUE).geodesic(true));
             }
            */
-        }
-        catch (JSONException e) {
-
+        } catch (JSONException e) {
+            return null;
         }
     }
 
@@ -99,8 +103,8 @@ public class MapUtil {
             int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
             lng += dlng;
 
-            LatLng p = new LatLng( (((double) lat / 1E5)),
-                    (((double) lng / 1E5) ));
+            LatLng p = new LatLng((((double) lat / 1E5)),
+                    (((double) lng / 1E5)));
             poly.add(p);
         }
 

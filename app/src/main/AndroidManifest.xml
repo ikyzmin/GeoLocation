@@ -26,6 +26,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".TravelsListActivity"/>
+        <activity android:name=".MarkersActivity"/>
 
         <service
             android:name=".service.FetchAddressIntentService"

@@ -5,8 +5,13 @@
     <string name="common_yes">Да</string>
     <string name="common_no">Нет</string>
     <string name="add_route">Добавить маршрут</string>
-    <string name="route_start">Начало</string>
-    <string name="route_end">Конец</string>
+    <string name="route_start">Начало: %s</string>
+    <string name="route_end">Конец: %s</string>
     <string name="route_name">Имя путешествия</string>
     <string name="find_route">Создать путешествие</string>
+    <string name="drawer_open">Открыто</string>
+    <string name="drawer_close">Закрыто</string>
+    <string name="travels_list">Список путешествий</string>
+    <string name="not_linked_markers_list">Список несвязных меток</string>
+    <string name="travel_route">%1$s\n%2$s</string>
 </resources>
