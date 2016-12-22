@@ -8,11 +8,13 @@ public final class Constants {
     public static final int SUCCESS_RESULT = 0;
     public static final int REQUEST_START = 1;
     public static final int REQUEST_END = 2;
-    public static final int REQUEST_POINT = 3;
-    public static final int FAILURE_RESULT = 4;
+    public static final int REQUEST_LOCATION = 3;
+    public static final int REQUEST_POINT = 4;
+    public static final int FAILURE_RESULT = 5;
     public static final String PACKAGE_NAME =
             "com.ssay.geocoder";
     public static final String REQUEST_CODE_EXTRA = "requestCode";
+    public static final String REQUSTED_STRING_LOCATION ="stringLocation";
 
     public static final String RECEIVER = PACKAGE_NAME + ".RECEIVER";
     public static final String RESULT_DATA_KEY = PACKAGE_NAME +

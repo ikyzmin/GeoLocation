@@ -1,6 +1,5 @@
 package com.ssau.geolocation;
 
-import android.*;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
@@ -31,15 +30,16 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -54,7 +54,6 @@ import com.ssau.geolocation.service.Constants;
 import com.ssau.geolocation.service.FetchAddressIntentService;
 import com.ssau.geolocation.util.MapUtil;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -81,7 +80,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private Toolbar toolbar;
     private final ArrayList<Marker> notLinkedMarkers = new ArrayList<>();
     private final ArrayList<Polyline> lines = new ArrayList<>();
-
+    private String location;
     private final ArrayList<Marker> newRoutePoints = new ArrayList<>();
     private final ArrayList<Travel> travels = new ArrayList<>();
     private LocationManager locationManager;
@@ -243,8 +242,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.search, menu);
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
+        if (item.getItemId() == R.id.search) {
+            addMarkerByString();
+        }
         if (menuToggle.onOptionsItemSelected(item)) {
             return true;
         }
@@ -283,9 +291,20 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         startService(intent);
     }
 
+    protected void startIntentService(String location, int requestCode) {
+        Intent intent = new Intent(this, FetchAddressIntentService.class);
+        intent.putExtra(Constants.RECEIVER, mResultReceiver);
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        intent.putExtra(Constants.REQUSTED_STRING_LOCATION, location);
+        intent.putExtra(Constants.REQUEST_CODE_EXTRA, requestCode);
+        startService(intent);
+    }
+
     @Override
     public void onMapReady(final GoogleMap googleMap) {
         this.googleMap = googleMap;
+        googleMap.setInfoWindowAdapter(new PhotoWindowAdapter(this));
         updateMap();
         if (checkGPS()) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -294,7 +313,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         double latitude = lastKnownLocation != null ? lastKnownLocation.getLatitude() : 0;
         double longitude = lastKnownLocation != null ? lastKnownLocation.getLongitude() : 0;
-        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 12.0f));
         googleMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
             @Override
             public boolean onMyLocationButtonClick() {
@@ -330,11 +348,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     marker.remove();
                     updateMap();
                 }
-                if (LocationStore.getInstance().getNotLinkedMarkers().contains(marker)) {
-                    LocationStore.getInstance().getNotLinkedMarkers().remove(marker);
-                    marker.remove();
-                    updateMap();
-                }
+                //if (LocationStore.getInstance().getNotLinkedMarkers().contains(marker)) {
+                //  LocationStore.getInstance().getNotLinkedMarkers().remove(marker);
+                //marker.remove();
+                //updateMap();
+                //}
 
                 return false;
             }
@@ -396,6 +414,41 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 routeEndTextView.setText(getString(R.string.route_end, resultData.getString(Constants.RESULT_DATA_KEY)));
             }
 
+            if (resultCode == Constants.REQUEST_LOCATION) {
+                Marker marker = googleMap.addMarker(new MarkerOptions().position((LatLng) resultData.getParcelable(Constants.LOCATION_DATA_EXTRA)));
+                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 7.0f));
+                LocationStore.getInstance().addNotLinkedMarker(marker);
+            }
+
         }
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            //paths.add(data.getData());
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    public void choosePhoto(Intent intent, Marker marker) {
+    }
+
+    private void addMarkerByString() {
+        final EditText input = new EditText(this);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(lp);
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        alert.setTitle("Введите адрес");
+        alert.setView(input); // uncomment this line
+        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                location = input.getText().toString();
+                startIntentService(location, Constants.REQUEST_LOCATION);
+            }
+        });
+        alert.show();
     }
 }
