@@ -25,6 +25,7 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.AppCompatEditText;
+import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.AppCompatTextView;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -44,6 +45,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -59,6 +62,7 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 import static com.ssau.geolocation.R.id.map;
+import static com.ssau.geolocation.R.id.marker_icon;
 
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
@@ -72,11 +76,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private AppCompatTextView routeStartTextView;
     private AppCompatTextView routeEndTextView;
     private AppCompatEditText routeName;
+    private AppCompatImageButton markerIconButton;
     private DrawerLayout drawerLayout;
     private RecyclerView menuRecyclerView;
     private AppCompatButton createRouteButton;
     private ActionBarDrawerToggle menuToggle;
     private AddressResultReceiver mResultReceiver;
+    private int selectedIndex = 0;
+    private final int[] markersIcon = new int[]{R.mipmap.android_marker, R.mipmap.marker_nota};
     private Toolbar toolbar;
     private final ArrayList<Marker> notLinkedMarkers = new ArrayList<>();
     private final ArrayList<Polyline> lines = new ArrayList<>();
@@ -115,6 +122,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
         });
         toolbar = (Toolbar) findViewById(R.id.toolbar);
+        markerIconButton = (AppCompatImageButton) findViewById(R.id.marker_icon);
+        markerIconButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                selectedIndex++;
+                selectedIndex %= 2;
+                markerIconButton.setImageResource(markersIcon[selectedIndex % 2]);
+
+            }
+        });
         drawerLayout = (DrawerLayout) findViewById(R.id.menu);
         setSupportActionBar(toolbar);
         menuToggle = new ActionBarDrawerToggle(this, drawerLayout,
@@ -327,7 +344,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             @Override
             public void onMapClick(LatLng latLng) {
                 if (slidingUpPanelLayout.getPanelState() == SlidingUpPanelLayout.PanelState.ANCHORED && newRoutePoints.size() != 2) {
-                    Marker marker = googleMap.addMarker(new MarkerOptions().position(latLng));
+                    Marker marker = googleMap.addMarker(new MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.fromResource(markersIcon[selectedIndex])));
                     if (newRoutePoints.size() == 0) {
                         startIntentService(marker.getPosition(), Constants.REQUEST_START);
                     } else {
@@ -336,7 +353,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     newRoutePoints.add(marker);
                 } else {
                     if (slidingUpPanelLayout.getPanelState() != SlidingUpPanelLayout.PanelState.ANCHORED)
-                        LocationStore.getInstance().addNotLinkedMarker(googleMap.addMarker(new MarkerOptions().position(latLng)));
+                        LocationStore.getInstance().addNotLinkedMarker(googleMap.addMarker(new MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.fromResource(markersIcon[selectedIndex]))));
                 }
             }
         });
@@ -415,7 +432,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
 
             if (resultCode == Constants.REQUEST_LOCATION) {
-                Marker marker = googleMap.addMarker(new MarkerOptions().position((LatLng) resultData.getParcelable(Constants.LOCATION_DATA_EXTRA)));
+                Marker marker = googleMap.addMarker(new MarkerOptions().position((LatLng) resultData.getParcelable(Constants.LOCATION_DATA_EXTRA)).icon(BitmapDescriptorFactory.fromResource(markersIcon[selectedIndex])));
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 7.0f));
                 LocationStore.getInstance().addNotLinkedMarker(marker);
             }
