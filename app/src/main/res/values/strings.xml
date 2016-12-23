@@ -13,7 +13,9 @@
     <string name="drawer_close">Закрыто</string>
     <string name="travels_list">Список путешествий</string>
     <string name="not_linked_markers_list">Список несвязных меток</string>
+    <string name="search_closest_travel">Поиск ближайшего путешествия</string>
     <string name="travel_route">%1$s\n%2$s</string>
     <string name="marker_location">%1$.5f %2$.5f</string>
     <string name="add_photo">Добавить фото</string>
+    <string name="search_travel">Найти ближайшие путешествия</string>
 </resources>

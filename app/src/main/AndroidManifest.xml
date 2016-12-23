@@ -29,11 +29,13 @@
         <activity android:name=".TravelsListActivity" />
         <activity android:name=".MarkersActivity" />
         <activity android:name=".GeoItemActivity" />
+        <activity android:name=".SearchClosestTravelActivity"/>
 
         <service
             android:name=".service.FetchAddressIntentService"
             android:exported="false" />
     </application>
+
     <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 </manifest>

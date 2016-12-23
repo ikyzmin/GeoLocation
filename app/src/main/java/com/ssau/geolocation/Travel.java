@@ -10,11 +10,13 @@ public class Travel {
     public Marker origin;
     public Marker dest;
     public String name;
+    public int icon;
     public ArrayList<Uri> photos = new ArrayList<>();
 
-    public Travel(String name, Marker org, Marker dst) {
+    public Travel(String name, Marker org, Marker dst,int icon) {
         origin = org;
         dest = dst;
         this.name = name;
+        this.icon = icon;
     }
 }

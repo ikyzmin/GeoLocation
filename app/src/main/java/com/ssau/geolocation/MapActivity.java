@@ -41,6 +41,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -83,7 +84,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private ActionBarDrawerToggle menuToggle;
     private AddressResultReceiver mResultReceiver;
     private int selectedIndex = 0;
-    private final int[] markersIcon = new int[]{R.mipmap.arrow_marker,R.mipmap.android_marker, R.mipmap.marker_nota};
+    private final int[] markersIcon = new int[]{R.mipmap.map_marker, R.mipmap.arrow_marker, R.mipmap.android_marker, R.mipmap.marker_nota};
     private Toolbar toolbar;
     private final ArrayList<Marker> notLinkedMarkers = new ArrayList<>();
     private final ArrayList<Polyline> lines = new ArrayList<>();
@@ -91,6 +92,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private final ArrayList<Marker> newRoutePoints = new ArrayList<>();
     private final ArrayList<Travel> travels = new ArrayList<>();
     private LocationManager locationManager;
+    private GoogleApiClient mGoogleApiClient;
 
     private BroadcastReceiver roadNotFoundReceiver = new BroadcastReceiver() {
         @Override
@@ -123,7 +125,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         });
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         markerIconButton = (AppCompatImageButton) findViewById(R.id.marker_icon);
-        markerIconButton.setImageResource(markersIcon[selectedIndex%markersIcon.length]);
+        markerIconButton.setImageResource(markersIcon[selectedIndex % markersIcon.length]);
         markerIconButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -134,13 +136,19 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
         });
         drawerLayout = (DrawerLayout) findViewById(R.id.menu);
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+        }
         setSupportActionBar(toolbar);
         menuToggle = new ActionBarDrawerToggle(this, drawerLayout,
                 toolbar, R.string.drawer_open, R.string.drawer_close) {
             @Override
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
-
             }
 
             @Override
@@ -175,7 +183,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             @Override
             public void onClick(View view) {
                 if (newRoutePoints.size() == 2) {
-                    Travel travel = new Travel(routeName.getText().toString(), newRoutePoints.get(0), newRoutePoints.get(1));
+                    Travel travel = new Travel(routeName.getText().toString(), newRoutePoints.get(0), newRoutePoints.get(1), markersIcon[selectedIndex % markersIcon.length]);
                     ConnectAsyncTask connectAsyncTask = new ConnectAsyncTask(MapActivity.this, MapUtil.makeURL(newRoutePoints.get(0).getPosition().latitude, newRoutePoints.get(0).getPosition().longitude, newRoutePoints.get(1).getPosition().latitude, newRoutePoints.get(1).getPosition().longitude), googleMap, travels.size() - 1);
                     String result = null;
                     try {
@@ -205,28 +213,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0,
-                0, new LocationListener() {
-                    @Override
-                    public void onLocationChanged(Location location) {
-                        lastKnownLocation = location;
-                    }
-
-                    @Override
-                    public void onStatusChanged(String s, int i, Bundle bundle) {
-
-                    }
-
-                    @Override
-                    public void onProviderEnabled(String s) {
-
-                    }
-
-                    @Override
-                    public void onProviderDisabled(String s) {
-
-                    }
-                });
     }
 
     private void updateMap() {
@@ -236,8 +222,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 googleMap.addMarker(new MarkerOptions().position(marker.marker.getPosition()).icon(BitmapDescriptorFactory.fromResource(marker.icon)));
             }
             for (Travel travel : LocationStore.getInstance().getTravels()) {
-                googleMap.addMarker(new MarkerOptions().position(travel.origin.getPosition()));
-                googleMap.addMarker(new MarkerOptions().position(travel.dest.getPosition()));
+                googleMap.addMarker(new MarkerOptions().position(travel.origin.getPosition()).icon(BitmapDescriptorFactory.fromResource(travel.icon)));
+                googleMap.addMarker(new MarkerOptions().position(travel.dest.getPosition()).icon(BitmapDescriptorFactory.fromResource(travel.icon)));
             }
 
             for (Polyline polyline : LocationStore.getInstance().getLines()) {
@@ -251,11 +237,25 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
     }
 
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(
+                mGoogleApiClient);
+        if (googleMap!=null){
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude()), 7.0f));
+        }
+    }
+
     protected void onStart() {
+        mGoogleApiClient.connect();
         super.onStart();
     }
 
     protected void onStop() {
+        mGoogleApiClient.disconnect();
         super.onStop();
     }
 
@@ -322,6 +322,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(final GoogleMap googleMap) {
         this.googleMap = googleMap;
+
         updateMap();
         if (checkGPS()) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -335,8 +336,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             public boolean onMyLocationButtonClick() {
                 if (lastKnownLocation != null) {
                     MarkerItem markerItem = new MarkerItem();
-                    Marker marker = googleMap.addMarker(new MarkerOptions().position(new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude())));
+                    Marker marker = googleMap.addMarker(new MarkerOptions().position(new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude())).icon(BitmapDescriptorFactory.fromResource(markersIcon[selectedIndex % markersIcon.length])));
                     markerItem.marker = marker;
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 7.0f));
                     LocationStore.getInstance().addNotLinkedMarker(markerItem);
                     return true;
                 }
@@ -408,10 +410,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         alertDialog.show();
     }
 
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-    }
-
 
     @Override
     public void onConnectionSuspended(int i) {
@@ -452,7 +450,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            //paths.add(data.getData());
             super.onActivityResult(requestCode, resultCode, data);
         }
     }

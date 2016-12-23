@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 
 import com.ssau.geolocation.MarkersActivity;
 import com.ssau.geolocation.R;
+import com.ssau.geolocation.SearchClosestTravelActivity;
 import com.ssau.geolocation.TravelsListActivity;
 
 /**
@@ -15,7 +16,8 @@ import com.ssau.geolocation.TravelsListActivity;
 
 public enum MenuItem {
     TRAVELS(R.string.travels_list, TravelsListActivity.class),
-    MARKERS(R.string.not_linked_markers_list, MarkersActivity.class);
+    MARKERS(R.string.not_linked_markers_list, MarkersActivity.class),
+    SEARCH(R.string.search_closest_travel, SearchClosestTravelActivity.class);
 
     @StringRes
     int titleId;
