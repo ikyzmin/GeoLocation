@@ -54,6 +54,12 @@ public class TravelsAdapter extends RecyclerView.Adapter<TravelsAdapter.ViewHold
                 notifyItemRemoved(position);
             }
         });
+        holder.view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                GeoItemActivity.startMe(context, position, GeoItemActivity.GeoType.TRAVEL);
+            }
+        });
     }
 
     @Override
@@ -67,9 +73,11 @@ public class TravelsAdapter extends RecyclerView.Adapter<TravelsAdapter.ViewHold
         AppCompatTextView travelNameTextView;
         AppCompatTextView travelRouteTextView;
         AppCompatImageButton deleteTravelButton;
+        View view;
 
         public ViewHolder(View itemView) {
             super(itemView);
+            view = itemView;
             travelColorImageView = (ImageView) itemView.findViewById(R.id.travel_color);
             travelNameTextView = (AppCompatTextView) itemView.findViewById(R.id.travel_name);
             travelRouteTextView = (AppCompatTextView) itemView.findViewById(R.id.travel_route);

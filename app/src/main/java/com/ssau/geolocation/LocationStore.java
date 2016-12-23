@@ -21,7 +21,7 @@ public class LocationStore {
     }
 
     private  ArrayList<Travel> travels = new ArrayList<>();
-    private  ArrayList<Marker> notLinkedMarkers = new ArrayList<>();
+    private  ArrayList<MarkerItem> notLinkedMarkers = new ArrayList<>();
     private  ArrayList<Polyline> lines = new ArrayList<>();
 
     public ArrayList<Travel> getTravels() {
@@ -32,7 +32,7 @@ public class LocationStore {
         travels.add(travel);
     }
 
-    public void addNotLinkedMarker(Marker marker){
+    public void addNotLinkedMarker(MarkerItem marker){
         notLinkedMarkers.add(marker);
     }
 
@@ -44,11 +44,11 @@ public class LocationStore {
        travels = travels;
     }
 
-    public ArrayList<Marker> getNotLinkedMarkers() {
+    public ArrayList<MarkerItem> getNotLinkedMarkers() {
         return notLinkedMarkers;
     }
 
-    public void setNotLinkedMarkers(ArrayList<Marker> notLInkedMarkers) {
+    public void setNotLinkedMarkers(ArrayList<MarkerItem> notLInkedMarkers) {
         notLinkedMarkers = notLInkedMarkers;
     }
 
