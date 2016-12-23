@@ -51,6 +51,8 @@ public class TravelsAdapter extends RecyclerView.Adapter<TravelsAdapter.ViewHold
             public void onClick(View v) {
                 LocationStore.getInstance().getTravels().remove(position);
                 LocationStore.getInstance().getLines().remove(position);
+                LocationStore.getInstance().getTravels().trimToSize();
+                LocationStore.getInstance().getLines().trimToSize();
                 notifyItemRemoved(position);
             }
         });
@@ -64,7 +66,7 @@ public class TravelsAdapter extends RecyclerView.Adapter<TravelsAdapter.ViewHold
 
     @Override
     public int getItemCount() {
-        return travels.size();
+        return LocationStore.getInstance().getTravels().size();
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {

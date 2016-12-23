@@ -244,7 +244,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
-        if (googleMap!=null){
+        if (googleMap != null) {
             googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude()), 7.0f));
         }
     }
@@ -338,6 +338,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     MarkerItem markerItem = new MarkerItem();
                     Marker marker = googleMap.addMarker(new MarkerOptions().position(new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude())).icon(BitmapDescriptorFactory.fromResource(markersIcon[selectedIndex % markersIcon.length])));
                     markerItem.marker = marker;
+                    markerItem.icon = markersIcon[selectedIndex % markersIcon.length];
                     googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 7.0f));
                     LocationStore.getInstance().addNotLinkedMarker(markerItem);
                     return true;

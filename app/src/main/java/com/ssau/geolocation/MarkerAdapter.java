@@ -38,6 +38,7 @@ public class MarkerAdapter extends RecyclerView.Adapter<MarkerAdapter.ViewHolder
             @Override
             public void onClick(View v) {
                 LocationStore.getInstance().getNotLinkedMarkers().remove(position);
+                LocationStore.getInstance().getNotLinkedMarkers().trimToSize();
                 notifyItemRemoved(position);
             }
         });
