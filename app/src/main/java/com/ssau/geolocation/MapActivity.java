@@ -244,7 +244,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
-        if (googleMap != null) {
+        if (googleMap != null && lastKnownLocation != null) {
             googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude()), 7.0f));
         }
     }
